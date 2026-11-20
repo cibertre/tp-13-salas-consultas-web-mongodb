@@ -1,0 +1,17 @@
+<section class="formulario">
+ <h1>Cambiar disponibilidad</h1>
+ <p>Se modifica solo disponible. Los demás datos se conservan.</p>
+ <*% if (error) { %>
+ <p role="alert"><*%= error %></p>
+ <*% } %>
+ <form action="/reservas/<*%= id %>/disponibilidad" method="post">
+ <label for="disponible">Cambiar disponibilidad</label>
+ <select id="disponible" name="disponible" required>
+ <option value="">Elegí una opción</option>
+ <option value="true" *<%=* valores.disponible =*==* "true" ? *"selected"* : *""* %>>Disponible</option>
+ <option value="false" <%=* valores.disponible =*==* "false" ? *"selected"* : *""* %>>No disponible</option>
+ </select>
+ <button type="submit">Guardar disponibilidad</button>
+ <a href="/reservas/<*%= id %>">Cancelar</a>
+ </form>
+</section>

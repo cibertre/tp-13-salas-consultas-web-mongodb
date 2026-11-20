@@ -1,0 +1,133 @@
+
+<form action="/reservas" method="GET" class="formulario-busqueda">
+    <div>
+        <label for="q">Buscar estudiante</label>
+        <input
+            type="text"
+            id="q"
+            name="q"
+            value="<%= criterios.q %>"
+            maxlength="60"
+            placeholder="Ingresá un nombre o fragmento"
+        >
+    </div>
+
+    <div>
+        <label for="sala">Filtrar por sala</label>
+        <input
+            type="text"
+            id="sala"
+            name="sala"
+            value="<%= criterios.sala %>"
+            maxlength="80"
+            placeholder="Ej.: Sala Norte"
+        >
+    </div>
+
+    <div>
+        <label for="orden">Ordenar por</label>
+        <select id="orden" name="orden">
+            <option value="estudiante" <%= criterios.orden === "estudiante" ? "selected" : "" %>>
+                Estudiante
+            </option>
+            <option value="personas-asc" <%= criterios.orden === "personas-asc" ? "selected" : "" %>>
+                Personas (menor a mayor)
+            </option>
+            <option value="personas-desc" <%= criterios.orden === "personas-desc" ? "selected" : "" %>>
+                Personas (mayor a menor)
+            </option>
+        </select>
+    </div>
+
+    <div>
+        <label for="limite">Reservas por página</label>
+        <select id="limite" name="limite">
+            <option value="2" <%= criterios.limite === 2 ? "selected" : "" %>>
+                2
+            </option>
+            <option value="5" <%= criterios.limite === 5 ? "selected" : "" %>>
+                5
+            </option>
+            <option value="10" <%= criterios.limite === 10 ? "selected" : "" %>>
+                10
+            </option>
+            <option value="20" <%= criterios.limite === 20 ? "selected" : "" %>>
+                20
+            </option>
+        </select>
+    </div>
+
+    <button type="submit" class="boton">Buscar</button>
+    <a href="/reservas" class="boton">Limpiar</a>
+</form>
+
+<p class="acciones">
+    <a class="boton" href="/reservas/nueva">+ Nueva reserva</a>
+</p>
+
+<% if (total === 0) { %>
+    <p class="estado-vacio">No hay coincidencias.</p>
+
+<% } else if (reservas.length === 0) { %>
+    <p class="estado-vacio">
+        La página solicitada está fuera de los resultados.
+    </p>
+
+    <p>
+        <a href="<%= urlPrimera %>">
+            Volver a la primera página
+        </a>
+    </p>
+
+<% } else { %>
+
+    <% if (paginas > 1) { %>
+        <nav class="paginacion" aria-label="Paginación de reservas">
+            <p>
+                Página <strong><%= pagina %></strong> de
+                <strong><%= paginas %></strong>
+                · Total de reservas: <strong><%= total %></strong>
+            </p>
+
+            <% if (urlAnterior) { %>
+                <a class="boton" href="<%= urlAnterior %>">
+                    Anterior
+                </a>
+            <% } %>
+
+            <% if (urlSiguiente) { %>
+                <a class="boton" href="<%= urlSiguiente %>">
+                    Siguiente
+                </a>
+            <% } %>
+        </nav>
+    <% } %>
+
+    <ul class="tarjetas">
+        <% reservas.forEach((reserva) => { %>
+            <li class="tarjeta">
+                <h2><%= reserva.sala %></h2>
+
+                <p>
+                    <strong>Estudiante:</strong>
+                    <%= reserva.estudiante %>
+                </p>
+
+                <p>
+                    <strong>Fecha:</strong> <%= reserva.fecha %>
+                    · <strong>Turno:</strong> <%= reserva.turno %>
+                </p>
+
+                <p>
+                    <strong>Personas:</strong>
+                    <%= reserva.personas %>
+                </p>
+
+                <p>
+                    <a href="/reservas/<%= reserva.id %>">Ver detalle</a>
+                </p>
+            </li>
+        <% }); %>
+    </ul>
+
+<% } %>
