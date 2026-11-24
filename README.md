@@ -1,38 +1,43 @@
-# Trabajo práctico 12 - Reservas de salas: CRUD web con MongoDB
+# Trabajo práctico 13 - Reservas de salas: búsqueda y consultas web con MongoDB
 
-Esta es una actualización de la aplicación de reservas de salas de estudio que venía desarrollando en los TP 06, 07, 08, 09, 10 y 11.
+Esta es una actualización de la aplicación de reservas de salas de estudio que venía desarrollando en los TP 06, 07, 08, 09, 10, 11 y 12.
 
-En los trabajos anteriores incorporé las operaciones del CRUD, la conexión con MongoDB Atlas, las consultas con filtros, ordenamiento y paginación desde la API, y las operaciones para crear, consultar y editar reservas desde la interfaz HTML.
+En los trabajos anteriores incorporé las operaciones del CRUD, la conexión con MongoDB Atlas, las consultas con filtros, ordenamiento y paginación desde la API, y las operaciones para crear, consultar, editar y eliminar reservas desde la interfaz HTML.
 
-En esta entrega continué trabajando sobre la aplicación web. Incorporé un formulario para modificar únicamente el estado de una reserva y una pantalla para confirmar su eliminación.
+En esta entrega amplié las consultas para permitir buscar reservas por fragmentos del nombre del estudiante, filtrar por sala, ordenar los resultados y recorrerlos mediante paginación desde el sitio web y desde un nuevo endpoint de la API.
 
-También trabajé sobre las validaciones y el manejo de errores para evitar modificaciones o eliminaciones cuando los datos enviados no cumplen con las condiciones establecidas.
+También incorporé criterios compartidos para las consultas web y API, validaciones de los parámetros recibidos y protección para que los caracteres especiales ingresados en la búsqueda se interpreten como texto literal y no como expresiones regulares.
 
 Las reservas siguen guardándose en MongoDB Atlas, por lo que no se pierden cuando reinicio el servidor. Tanto el sitio HTML como la API utilizan el mismo servicio y trabajan sobre los mismos documentos.
 
-Hecho con Node.js, Express 5, EJS y Mongoose. Alumno: Renato G. Trentini.
+Hecho con Node.js, Express 5, EJS y Mongoose.
+
+**Alumno:** Renato G. Trentini.
 
 ---
 
 ## 1. Inicio del proyecto
 
-- Arranqué desde el proyecto del TP 11, que ya tenía las operaciones del CRUD, la conexión con MongoDB Atlas y la aplicación web completa.
+- Arranqué desde el proyecto del TP 12, que ya tenía las operaciones del CRUD, la conexión con MongoDB Atlas y la aplicación web completa.
 - Mantuve la estructura general de carpetas y la separación entre rutas, controladores, servicios y modelos.
 - Conservé las operaciones anteriores para crear, consultar, modificar y eliminar reservas desde la API.
-- Mantuve el listado, el detalle, el formulario de creación y el formulario de edición desde el sitio HTML.
-- Incorporé un formulario para modificar únicamente el estado de una reserva.
-- Incorporé una pantalla de confirmación antes de eliminar una reserva desde el sitio HTML.
-- Trabajé sobre las validaciones para impedir que se envíen campos adicionales o valores incorrectos.
-- Incorporé el tratamiento de errores para diferenciar los identificadores inválidos de las reservas inexistentes.
+- Mantuve el listado, el detalle, los formularios de creación y edición, el cambio parcial de estado y la eliminación con confirmación desde el sitio HTML.
+- Incorporé la búsqueda por fragmento del nombre del estudiante.
+- Incorporé el filtro exacto por sala.
+- Incorporé el ordenamiento por estudiante o por cantidad de personas.
+- Amplié la consulta con paginación tanto para el sitio web como para la API.
+- Incorporé un módulo compartido para leer y validar los criterios de consulta.
+- Incorporé el escape de caracteres especiales para que la búsqueda interprete los valores ingresados como texto literal.
 - Mantuve la conexión con MongoDB Atlas y la persistencia de los documentos.
-- No copié el historial de Git, ni `node_modules`, ni el archivo `.env`.
+
+No se incluyen en la entrega el historial de Git, la carpeta `node_modules` ni el archivo `.env`.
 
 ## 2. Versiones
 
-Se mantienen las dependencias del proyecto anterior y se conserva la configuración utilizada en los trabajos anteriores.
+Las dependencias utilizadas en el proyecto son las siguientes:
 
-| Herramienta | Versión |
-| --- | --- |
+| Herramienta | Versión declarada |
+|---|---|
 | Node.js | v22.16.0 |
 | Express | ^5.2.1 |
 | Mongoose | ^9.11.2 |
@@ -40,45 +45,63 @@ Se mantienen las dependencias del proyecto anterior y se conserva la configuraci
 | express-ejs-layouts | ^2.5.1 |
 | morgan | ^1.12.1 |
 | dotenv | ^18.0.9 |
-| ESLint (dev) | ^10.12.0 |
-| @eslint/js (dev) | ^10.0.1 |
-| Prettier (dev) | ^3.9.10 |
+| ESLint | ^10.12.0 |
+| @eslint/js | ^10.0.1 |
+| Prettier | ^3.9.10 |
 
-Las dependencias están declaradas en `package.json`. Las versiones exactas que se instalaron quedan registradas en `package-lock.json`.
+Las dependencias están declaradas en `package.json`. Las versiones exactas instaladas quedan registradas en `package-lock.json`.
 
-Uso **CommonJS** (`require` y `module.exports`).
-
-Se mantiene `dotenv` como dependencia del proyecto.
+El proyecto utiliza **CommonJS**, mediante `require` y `module.exports`.
 
 ## 3. Preparar MongoDB Atlas
 
 1. Utilizo un cluster gratuito M0 en MongoDB Atlas.
 2. Tengo configurado un usuario de base de datos para conectarme.
-3. En Network Access agregué la IP desde la que me conecto.
-4. La base de datos se llama `reservas_salas_u12`.
+3. En Network Access está autorizada la IP desde la que me conecto.
+4. La base de datos utilizada para este trabajo se llama `reservas_salas_u13`.
 5. La colección se llama `reservas`.
 6. La colección se crea automáticamente cuando se guarda el primer documento.
 
 El sitio y la API trabajan sobre esta misma base de datos. Por eso, una modificación realizada desde el navegador también puede consultarse desde Postman, y viceversa.
 
+Para las pruebas de consulta se utilizaron seis reservas ficticias:
+
+| Estudiante | Sala | Personas |
+|---|---|---:|
+| Ana Alba | Sala Norte | 1 |
+| Ana Berta | Sala Norte | 2 |
+| Ana Clara | Sala Norte | 3 |
+| Ana Diana | Sala Sur | 4 |
+| Bruno Ejemplo | Sala Norte | 2 |
+| Carla (A+B) | Sala Sur | 1 |
+
+Estos registros permiten comprobar las búsquedas, los filtros, el ordenamiento y la paginación.
+
 ## 4. Variables de entorno y DNS
 
-El archivo `.env` no se entrega ni se sube al repositorio porque contiene los datos de conexión.
+El archivo `.env` contiene los datos reales de conexión y no debe subirse al repositorio.
 
-Dejé una plantilla `.env.example`:
+El proyecto incluye una plantilla `.env.example` con la siguiente estructura:
 
 ```env
 PORT=3000
 NODE_ENV=development
-MONGODB_URI=mongodb+srv://USUARIO:CLAVE@HOST_DEL_CLUSTER/reservas_salas_u12?retryWrites=true&w=majority
+MONGODB_URI=mongodb+srv://<USUARIO>:<CLAVE>@<CLUSTER>/reservas_salas_u13?retryWrites=true&w=majority
 ```
 
-- `USUARIO`, `CLAVE` y `HOST_DEL_CLUSTER` son marcadores y se deben reemplazar por los datos de cada conexión.
-- Para preparar el entorno se copia `.env.example` y se completa con la URI correspondiente.
-- La base de datos indicada en la URI es `reservas_salas_u12`.
-- La corrección de DNS está en `src/config/base-datos.js`, donde se utilizan los servidores `8.8.8.8` y `1.1.1.1`, como en los trabajos anteriores.
-- Esta configuración permite resolver la dirección `mongodb+srv` de Atlas.
-- El archivo `.env` contiene la URI real y debe mantenerse privado.
+- `PORT=3000`: indica el puerto en el que se inicia la aplicación.
+- `NODE_ENV=development`: establece el entorno de desarrollo.
+- `MONGODB_URI`: contiene la dirección de conexión con MongoDB Atlas.
+- `reservas_salas_u13`: identifica la base de datos utilizada en este trabajo.
+- Los valores `<USUARIO>`, `<CLAVE>` y `<CLUSTER>` son marcadores que deben reemplazarse por los datos reales de cada conexión.
+
+Para preparar el entorno se copia `.env.example` y se completa con la URI correspondiente.
+
+La corrección de DNS está en `src/config/base-datos.js`, donde se utilizan los servidores `8.8.8.8` y `1.1.1.1`, como en los trabajos anteriores.
+
+Esta configuración permite resolver la dirección `mongodb+srv` de Atlas.
+
+El archivo `.env` contiene la URI real y debe mantenerse privado.
 
 ## 5. Cómo iniciar la aplicación
 
@@ -108,13 +131,7 @@ En cambio, `npm start` ejecuta:
 node src/index.js
 ```
 
-Este último comando no carga automáticamente el archivo `.env`. Por eso, si `MONGODB_URI` no está definida previamente en el entorno, la aplicación muestra el error:
-
-```text
-No se pudo iniciar la aplicación: Error: Falta MONGODB_URI en el entorno.
-```
-
-Para el desarrollo local utilizo `npm run start:local`.
+Este último comando no carga automáticamente el archivo `.env`. Por eso, para el desarrollo local utilizo `npm run start:local`.
 
 Después se abre:
 
@@ -139,7 +156,7 @@ Cuando se cierra la aplicación con Ctrl+C (`SIGINT`) o mediante `SIGTERM`, se c
 src/
   config/          configuración del entorno y conexión a MongoDB
   modelos/         esquema de Mongoose
-  servicios/       operaciones con MongoDB
+  servicios/       operaciones con MongoDB y criterios de consulta
   controladores/   reciben las solicitudes y preparan las respuestas
   rutas/           rutas HTML y rutas de la API
   middlewares/     validaciones y manejo de solicitudes
@@ -155,20 +172,20 @@ La idea es mantener separadas las responsabilidades:
 
 - El modelo define cómo es una reserva y sus validaciones.
 - El servicio se comunica con MongoDB y realiza las operaciones de consulta, creación, modificación y eliminación.
+- El módulo `criterios-reservas.js` interpreta y valida los parámetros utilizados en las consultas.
 - Los controladores reciben las solicitudes y devuelven la respuesta correspondiente.
 - Las rutas conectan las direcciones con sus controladores.
 - Los middlewares validan los datos antes de que lleguen al servicio y permiten centralizar el tratamiento de errores.
+- Las vistas EJS muestran los resultados y los controles de búsqueda y paginación.
 
-En esta entrega también trabajé sobre los controladores y las vistas para completar el cambio parcial de estado y la eliminación con confirmación desde el sitio HTML.
-
-Tanto las rutas HTML como las rutas de la API utilizan el mismo servicio de reservas. De esta manera, no se duplica la lógica de acceso a MongoDB.
+Tanto las rutas HTML como las rutas de la API utilizan el mismo servicio de reservas. De esta manera, no se duplica la lógica de acceso a MongoDB ni se realizan solicitudes HTTP desde el sitio a la propia API.
 
 ### Comandos disponibles
 
-Se mantienen los comandos del proyecto anterior:
+Los comandos definidos en el `package.json` son:
 
 | Comando | Qué hace |
-| --- | --- |
+|---|---|
 | `npm start` | Inicia la aplicación sin cargar automáticamente el `.env` |
 | `npm run start:local` | Inicia la aplicación cargando el `.env` |
 | `npm run comprobardb` | Comprueba la conexión con MongoDB |
@@ -185,7 +202,7 @@ Se mantienen los comandos del proyecto anterior:
 Los campos de una reserva son:
 
 | Campo | Regla |
-| --- | --- |
+|---|---|
 | estudiante | Texto obligatorio, con espacios exteriores eliminados |
 | email | Texto obligatorio, debe contener `@` |
 | sala | `Sala Norte`, `Sala Sur` o `Sala Multimedia` |
@@ -215,8 +232,6 @@ En cambio, para reemplazar una reserva mediante PUT se deben enviar los siete ca
 
 Para PATCH solamente se permiten los campos `personas` y `estado`. Se puede enviar uno o los dos, pero no se aceptan otros campos.
 
-En el formulario web de esta entrega se incorpora otra forma de modificación: cambiar únicamente el campo `estado`.
-
 El servicio no pasa directamente `req.body` a Mongoose. Utiliza los campos que fueron validados y preparados por los middlewares o por el controlador.
 
 También se rechazan datos ausentes, campos no permitidos y valores incorrectos para `personas`, como booleanos, arreglos u objetos.
@@ -231,7 +246,7 @@ Ejemplo de una reserva (datos ficticios):
   "estudiante": "Ana Ejemplo",
   "email": "ana@example.com",
   "sala": "Sala Norte",
-  "fecha": "2026-11-05",
+  "fecha": "2026-11-18",
   "turno": "Mañana",
   "personas": 2,
   "estado": "pendiente"
@@ -240,27 +255,73 @@ Ejemplo de una reserva (datos ficticios):
 
 El `id` es un texto que sale del `_id` de MongoDB. No se convierte a número.
 
-## 8. Consultas, filtros y paginación
+## 8. Consultas, búsqueda, filtros y paginación
 
-Se mantienen las opciones incorporadas en el TP 10 para consultar las reservas desde la API.
+En esta entrega amplié las consultas que ya existían en el TP 10.
+
+Ahora se pueden realizar búsquedas desde el sitio web y desde un endpoint específico de la API.
+
+Las dos entradas utilizan los mismos criterios y el mismo servicio de búsqueda.
 
 La consulta permite:
 
-- Filtrar por sala.
-- Ordenar los resultados.
+- Buscar reservas por un fragmento del nombre del estudiante.
+- Filtrar por el nombre exacto de la sala.
+- Ordenar por estudiante.
+- Ordenar por cantidad de personas de menor a mayor.
+- Ordenar por cantidad de personas de mayor a menor.
 - Consultar una página determinada.
 - Establecer cuántas reservas se muestran por página.
-- Conocer la cantidad total de reservas que coinciden con el filtro.
+- Conocer la cantidad total de reservas que coinciden con los filtros.
 - Calcular cuántas páginas se necesitan.
 
 ### Parámetros permitidos
 
 | Parámetro | Función |
-| --- | --- |
-| `sala` | Filtra las reservas por el nombre de la sala |
+|---|---|
+| `q` | Busca un fragmento del nombre del estudiante |
+| `sala` | Filtra por coincidencia exacta del nombre de la sala |
 | `orden` | Indica cómo se ordenan los resultados |
 | `pagina` | Indica qué página se quiere consultar |
 | `limite` | Indica cuántas reservas se muestran por página |
+
+### Búsqueda por nombre: parámetro `q`
+
+El parámetro `q` permite buscar una parte del nombre del estudiante.
+
+Por ejemplo:
+
+```text
+GET /api/reservas/consulta?q=ana
+```
+
+La búsqueda encuentra los nombres que contienen ese fragmento, sin distinguir entre mayúsculas y minúsculas.
+
+El texto se recorta con `trim()` para eliminar espacios al principio y al final.
+
+El máximo permitido es de 60 caracteres.
+
+Si el parámetro está vacío, no se aplica ningún filtro por nombre.
+
+La búsqueda no elimina ni ignora las tildes.
+
+### Filtro exacto por sala
+
+El parámetro `sala` permite filtrar por el nombre exacto de la sala.
+
+Por ejemplo:
+
+```text
+GET /api/reservas/consulta?sala=Sala%20Norte
+```
+
+Se eliminan los espacios exteriores con `trim()` y se compara el valor completo de la sala.
+
+El máximo permitido es de 80 caracteres.
+
+Si el parámetro está vacío, no se aplica el filtro por sala.
+
+### Ordenamiento
 
 Los valores permitidos para `orden` son:
 
@@ -268,21 +329,73 @@ Los valores permitidos para `orden` son:
 - `personas-asc`: ordena por cantidad de personas de menor a mayor.
 - `personas-desc`: ordena por cantidad de personas de mayor a menor.
 
+En los tres casos se utiliza `_id` como segundo criterio de ordenamiento para resolver los empates de manera estable.
+
+El valor predeterminado es `estudiante`.
+
+Un valor vacío o diferente de las opciones permitidas se considera inválido.
+
+### Paginación
+
 Los valores predeterminados son:
 
 - Página: `1`.
 - Límite: `2`.
-- Orden: `estudiante`.
 
-El límite máximo permitido es 20. Si se envía un valor mayor, la API responde con código 400.
+Las validaciones permiten:
 
-### Ejemplo de consulta
+- Página: entero entre 1 y 1000.
+- Límite: entero entre 1 y 20.
 
-```text
-GET http://localhost:3000/api/reservas?sala=Sala%20Norte&orden=personas-asc&pagina=1&limite=2
+La cantidad de páginas se calcula mediante:
+
+```js
+Math.ceil(total / limite)
 ```
 
-En este caso se buscan las reservas de Sala Norte, ordenadas por cantidad de personas de menor a mayor, mostrando los primeros dos resultados.
+Para obtener los registros correspondientes a una página se utiliza el desplazamiento:
+
+```js
+(pagina - 1) * limite
+```
+
+### Validaciones de los parámetros
+
+El módulo compartido `criterios-reservas.js` se encarga de interpretar y validar los criterios recibidos.
+
+Se controla que:
+
+- Solamente se acepten los parámetros `q`, `sala`, `orden`, `pagina` y `limite`.
+- Los parámetros no estén repetidos.
+- Los valores recibidos sean textos únicos.
+- No se acepten parámetros desconocidos.
+- El texto de búsqueda no supere los 60 caracteres.
+- La sala no supere los 80 caracteres.
+- El orden corresponda a uno de los valores permitidos.
+- La página sea un entero entre 1 y 1000.
+- El límite sea un entero entre 1 y 20.
+
+Si alguna de estas condiciones no se cumple, la API responde con código 400 y un mensaje de error en formato JSON. Desde el sitio HTML se muestra la respuesta de error correspondiente.
+
+### Protección de la búsqueda literal
+
+Como el parámetro `q` se utiliza para buscar mediante una expresión regular, es necesario escapar los caracteres especiales.
+
+Por ejemplo, los caracteres `+`, `[`, `]`, `.` y `*` pueden tener un significado especial dentro de una expresión regular.
+
+La función `escaparRegex()` permite que esos caracteres se interpreten como texto literal.
+
+De esta manera, una búsqueda como `A+B` encuentra el nombre que contiene exactamente `A+B`, en lugar de interpretar el signo `+` como un operador.
+
+También se evita que el usuario pueda introducir operadores de MongoDB desde los parámetros de la URL.
+
+### Ejemplo de consulta combinada
+
+```text
+GET http://localhost:3000/api/reservas/consulta?q=ana&sala=Sala%20Norte&orden=personas-asc&pagina=1&limite=2
+```
+
+En este caso se buscan los estudiantes cuyo nombre contiene `ana`, se filtra por `Sala Norte`, se ordena por cantidad de personas de menor a mayor y se muestran los primeros dos resultados.
 
 ### Respuesta de la consulta
 
@@ -292,9 +405,19 @@ La respuesta devuelve un objeto con cinco propiedades:
 {
   "datos": [
     {
-      "id": "6ae8a31281fd53a85c6e0c0c",
-      "estudiante": "Juan Ejemplo",
-      "email": "juanjo.ejemplo@example.com",
+      "id": "6b057f90cb444c40066050fd",
+      "estudiante": "Ana Alba",
+      "email": "ana.alba@example.com",
+      "sala": "Sala Norte",
+      "fecha": "2026-11-18",
+      "turno": "Mañana",
+      "personas": 1,
+      "estado": "pendiente"
+    },
+    {
+      "id": "6b057fb7cb444c40066050fe",
+      "estudiante": "Ana Berta",
+      "email": "ana.berta@example.com",
       "sala": "Sala Norte",
       "fecha": "2026-11-18",
       "turno": "Mañana",
@@ -304,53 +427,61 @@ La respuesta devuelve un objeto con cinco propiedades:
   ],
   "pagina": 1,
   "limite": 2,
-  "total": 2,
-  "paginas": 1
+  "total": 3,
+  "paginas": 2
 }
 ```
 
 Las propiedades significan lo siguiente:
 
-- `datos`: contiene las reservas que corresponden a la página solicitada.
+- `datos`: contiene las reservas correspondientes a la página solicitada.
 - `pagina`: indica la página actual.
 - `limite`: indica cuántos resultados se muestran por página.
-- `total`: indica la cantidad total de reservas que cumplen el filtro.
+- `total`: indica la cantidad total de reservas que cumplen los filtros.
 - `paginas`: indica la cantidad total de páginas.
 
-Para obtener los datos se utiliza `find()` con el filtro correspondiente, el ordenamiento y la paginación.
+Para calcular el total se utiliza `countDocuments()` con el filtro correspondiente.
 
-Para calcular el total se utiliza `countDocuments()`. Este método cuenta todos los documentos que coinciden con el filtro, sin aplicar la paginación.
+Para recuperar los documentos se utiliza `find()`, junto con `sort()`, `skip()` y `limit()`.
 
-Esto es importante porque, aunque una página no tenga resultados, el total debe seguir indicando cuántas reservas existen para ese filtro.
+El conteo se realiza sin aplicar la paginación. Esto permite conocer cuántos documentos coinciden con los criterios, aunque la página solicitada no contenga resultados.
 
-### Validaciones de los parámetros
+### Páginas sin resultados
 
-El controlador solamente acepta los parámetros `sala`, `orden`, `pagina` y `limite`.
+Se contemplan dos situaciones diferentes:
 
-También controla que:
+1. Cuando no existen reservas que coincidan con los criterios, la consulta responde con código 200, `total: 0`, `paginas: 0` y `datos: []`.
+2. Cuando existen coincidencias, pero se solicita una página superior a la cantidad disponible, la consulta también responde con código 200 y conserva el total real, pero devuelve `datos: []`.
 
-- La sala tenga contenido.
-- No se repita el parámetro `sala`.
-- El orden corresponda a uno de los valores permitidos.
-- La página sea un número entero mayor o igual a 1.
-- El límite sea un número entero mayor o igual a 1 y no supere 20.
-- No se repitan parámetros como `pagina`.
-- No se envíen parámetros que no estén permitidos, como `select`.
+Desde el sitio web se muestran mensajes diferentes para distinguir ambos casos.
 
-Si alguna de estas condiciones no se cumple, la consulta responde con código 400.
+Cuando la página solicitada está fuera de los resultados, se ofrece un enlace para volver a la primera página conservando los criterios de búsqueda.
+
+### Navegación desde el sitio HTML
+
+El formulario de búsqueda permite ingresar:
+
+- Fragmento del nombre del estudiante.
+- Sala.
+- Criterio de ordenamiento.
+- Cantidad de reservas por página.
+
+Al realizar una nueva búsqueda, la página vuelve a la primera.
+
+Los enlaces Anterior y Siguiente conservan los criterios de búsqueda, el filtro, el orden y el límite seleccionado.
+
+El botón Limpiar permite volver al listado sin filtros y con los valores predeterminados.
 
 ## 9. Endpoints
 
 ### API JSON
 
-Se mantienen los endpoints incorporados en los trabajos anteriores:
+Se mantienen los endpoints incorporados en los trabajos anteriores y se agrega una nueva ruta de consulta:
 
 | Método y dirección | Resultado |
-| --- | --- |
-| `GET /api/reservas` | Lista las reservas con paginación |
-| `GET /api/reservas?sala=Sala%20Norte` | Lista las reservas de esa sala |
-| `GET /api/reservas?orden=personas-asc` | Ordena por cantidad de personas |
-| `GET /api/reservas?pagina=2&limite=2` | Consulta una página determinada |
+|---|---|
+| `GET /api/reservas` | Lista las reservas con la consulta anterior y su paginación |
+| `GET /api/reservas/consulta` | Busca y filtra reservas con los criterios del TP 13 |
 | `GET /api/reservas/estado` | Devuelve la cantidad total de reservas |
 | `GET /api/reservas/:id` | Busca una reserva por su ID |
 | `POST /api/reservas` | Crea una reserva |
@@ -358,50 +489,44 @@ Se mantienen los endpoints incorporados en los trabajos anteriores:
 | `PATCH /api/reservas/:id` | Modifica `personas`, `estado` o ambos |
 | `DELETE /api/reservas/:id` | Elimina físicamente una reserva |
 
-### Ruta de estado
+La nueva ruta `/consulta` se registra antes de la ruta dinámica `/:id`, para evitar que Express interprete la palabra `consulta` como un identificador.
 
-También se mantiene la consulta para conocer cuántas reservas hay guardadas.
+La ruta anterior `GET /api/reservas` conserva su funcionamiento y su contrato. La nueva búsqueda se realiza mediante `GET /api/reservas/consulta`.
 
-La dirección es:
+### Ejemplos de consulta desde la API
+
+Consulta sin parámetros:
 
 ```text
-GET http://localhost:3000/api/reservas/estado
+GET http://localhost:3000/api/reservas/consulta
 ```
 
-La respuesta tiene esta estructura:
+Búsqueda por nombre:
 
-```json
-{
-  "totalReservas": 7
-}
+```text
+GET http://localhost:3000/api/reservas/consulta?q=ana
 ```
 
-El número depende de la cantidad de documentos que haya guardados en MongoDB.
+Búsqueda por nombre y sala:
 
-Para obtenerlo se utiliza `countDocuments()` sin un filtro, por lo que cuenta todas las reservas de la colección.
+```text
+GET http://localhost:3000/api/reservas/consulta?q=ana&sala=Sala%20Norte
+```
 
-### Respuestas de la API
+Ordenamiento y paginación:
 
-| Situación | Código HTTP |
-| --- | --- |
-| Consulta correcta | 200 |
-| Reserva creada correctamente | 201 |
-| Eliminación correcta | 204 |
-| ID mal formado | 400 |
-| Datos inválidos o campos no permitidos | 400 |
-| Parámetros de consulta inválidos | 400 |
-| ID válido pero reserva inexistente | 404 |
-| Ruta de API inexistente | 404 |
-| Error inesperado del servidor | 500 |
+```text
+GET http://localhost:3000/api/reservas/consulta?orden=personas-asc&pagina=2&limite=2
+```
 
 ### Sitio HTML
 
-En esta entrega se amplía el trabajo desde el navegador, incorporando el cambio parcial de estado y la eliminación con confirmación.
+Se mantienen las rutas web anteriores y se amplía el listado de reservas:
 
 | Dirección | Qué hace |
-| --- | --- |
+|---|---|
 | `GET /` | Página de inicio |
-| `GET /reservas` | Muestra el listado de reservas |
+| `GET /reservas` | Muestra el listado y permite buscar, filtrar, ordenar y paginar |
 | `GET /reservas/nueva` | Muestra el formulario de creación |
 | `POST /reservas` | Guarda una reserva desde el formulario |
 | `GET /reservas/:id` | Muestra el detalle de una reserva |
@@ -412,80 +537,23 @@ En esta entrega se amplía el trabajo desde el navegador, incorporando el cambio
 | `GET /reservas/:id/eliminar` | Muestra la pantalla de confirmación de eliminación |
 | `POST /reservas/:id/eliminar` | Procesa la confirmación y elimina la reserva |
 
-El sitio sigue utilizando MongoDB. Por eso, los cambios que se hacen desde la API también se reflejan cuando se consulta el listado o el detalle desde el navegador.
+La ruta `GET /reservas` recibe los mismos criterios de búsqueda que la nueva consulta de la API.
 
-### Cambio parcial de estado desde el sitio HTML
+El sitio no realiza una solicitud HTTP a su propia API. El controlador web utiliza directamente el servicio compartido.
 
-En esta entrega incorporé un formulario que permite modificar únicamente el estado de una reserva.
+### Respuestas de la API
 
-Los estados permitidos son:
-
-- `pendiente`
-- `confirmada`
-
-El flujo funciona de la siguiente manera:
-
-1. Desde el listado o el detalle se accede a la opción para cambiar el estado.
-2. La aplicación busca la reserva en MongoDB mediante su identificador.
-3. Si existe, muestra el formulario con el estado actual.
-4. El usuario selecciona el nuevo estado y envía el formulario.
-5. El controlador verifica que se haya enviado únicamente el campo `estado`.
-6. También comprueba que el valor sea uno de los estados permitidos.
-7. Si los datos son correctos, el controlador prepara un objeto con el cambio y llama al servicio `actualizar`.
-8. El servicio modifica únicamente el estado y conserva los demás datos de la reserva.
-9. La aplicación responde con una redirección 303 al detalle de la reserva actualizada.
-
-No se reemplaza todo el documento. Se utiliza una actualización parcial para modificar solamente el campo solicitado.
-
-Si se envían campos adicionales, un estado vacío o un valor no permitido, la aplicación responde con código 400 y muestra nuevamente el formulario con el mensaje correspondiente.
-
-También se rechazan los campos repetidos.
-
-Si la reserva no existe, la aplicación responde con código 404.
-
-Si se cancela el formulario, no se envía ninguna modificación y la reserva permanece sin cambios.
-
-### Eliminación desde el sitio HTML
-
-También incorporé una pantalla de confirmación antes de eliminar una reserva.
-
-El flujo funciona de la siguiente manera:
-
-1. Desde el listado o el detalle se accede a la opción de eliminar.
-2. La aplicación busca la reserva en MongoDB mediante su identificador.
-3. Si existe, muestra una pantalla con los datos principales de la reserva y una advertencia.
-4. El usuario puede cancelar o confirmar la eliminación.
-5. Si confirma, el formulario envía el campo `confirmar` con el valor `si`.
-6. El controlador comprueba que se haya enviado únicamente ese campo y que su valor sea correcto.
-7. Si la confirmación es válida, llama al servicio `eliminar`.
-8. El servicio elimina físicamente el documento de MongoDB.
-9. Si la eliminación se completa, la aplicación responde con una redirección 303 al listado de reservas.
-
-La eliminación requiere una confirmación explícita. Si el campo está ausente, tiene un valor incorrecto, está repetido o se envían campos adicionales, la aplicación responde con código 400 y no elimina la reserva.
-
-La pantalla de confirmación utiliza una solicitud GET que solamente consulta y muestra los datos. La eliminación se realiza mediante POST, después de la confirmación.
-
-Si se cancela la operación, no se modifica ni se elimina el documento.
-
-Si la reserva no existe, la aplicación responde con código 404.
-
-### Manejo de errores
-
-También se trabajó sobre el manejo de errores de la aplicación.
-
-El middleware centralizado permite diferenciar los errores de entrada de los errores inesperados del servidor.
-
-Para las solicitudes de la API se devuelve una respuesta JSON con el mensaje de error y los campos que presentan problemas cuando corresponde.
-
-Para las solicitudes del sitio HTML se muestran las vistas correspondientes con el mensaje de error.
-
-En los formularios de edición y cambio parcial de estado, cuando se produce un error de validación, se conserva el contexto del formulario y los valores enviados para que el usuario pueda corregirlos.
-
-En la eliminación se vuelve a mostrar la pantalla de confirmación cuando los datos enviados no cumplen con las condiciones establecidas.
-
-También se diferencia entre un identificador inválido, que produce una respuesta 400, y un identificador válido que no corresponde a ninguna reserva, que produce una respuesta 404.
-
-De esta manera, el sitio y la API mantienen respuestas diferentes según el tipo de solicitud, pero utilizan el mismo servicio de reservas.
+| Situación | Código HTTP |
+|---|---|
+| Consulta correcta | 200 |
+| Reserva creada correctamente | 201 |
+| Eliminación correcta | 204 |
+| ID mal formado | 400 |
+| Datos inválidos o campos no permitidos | 400 |
+| Parámetros de consulta inválidos | 400 |
+| ID válido pero reserva inexistente | 404 |
+| Ruta de API inexistente | 404 |
+| Error inesperado del servidor | 500 |
 
 ## 10. Cómo probar en Postman
 
@@ -501,248 +569,206 @@ La dirección base es:
 http://localhost:3000
 ```
 
-En las solicitudes que llevan datos se utiliza `Body > raw > JSON`, salvo las operaciones que se realizan desde los formularios HTML.
+En las consultas GET no es necesario utilizar Body. Los criterios se ingresan desde la pestaña Params de Postman o directamente en la URL.
 
-### Ejemplo de consulta con filtros y paginación
+### Ejemplo de búsqueda sin parámetros
 
 **Método:** GET
 
 **URL:**
 
 ```text
-http://localhost:3000/api/reservas
+http://localhost:3000/api/reservas/consulta
 ```
 
-En la pestaña Params se pueden cargar los siguientes valores:
+La respuesta esperada es HTTP 200 y contiene los primeros dos registros, con página 1, límite 2, total 6 y 3 páginas.
+
+### Ejemplo de búsqueda por nombre
+
+**Método:** GET
+
+**URL:**
+
+```text
+http://localhost:3000/api/reservas/consulta
+```
+
+En Params:
 
 | Key | Value |
-| --- | --- |
+|---|---|
+| q | ana |
+
+La consulta devuelve los registros cuyo nombre contiene el fragmento `ana`.
+
+### Ejemplo de búsqueda combinada
+
+En Params:
+
+| Key | Value |
+|---|---|
+| q | ana |
 | sala | Sala Norte |
 | orden | personas-asc |
 | pagina | 1 |
 | limite | 2 |
 
-Postman genera la dirección con los parámetros correspondientes.
+La consulta devuelve los registros que cumplen ambos filtros, ordenados por cantidad de personas de menor a mayor.
 
-La respuesta esperada es un objeto que contiene los resultados y los datos de paginación.
+### Ejemplo de búsqueda literal
 
-### Ejemplo de POST
-
-**Método:** POST
-
-**URL:**
+Para comprobar que los caracteres especiales se interpretan como texto literal:
 
 ```text
-http://localhost:3000/api/reservas
+http://localhost:3000/api/reservas/consulta?q=A%2BB
 ```
 
-**Body:**
+Esta consulta encuentra el registro `Carla (A+B)`.
 
-```json
-{
-  "estudiante": "María Ejemplo",
-  "email": "maria.ejemplo@example.com",
-  "sala": "Sala Norte",
-  "fecha": "2026-11-05",
-  "turno": "Mañana",
-  "personas": 2
-}
-```
-
-La respuesta esperada es `201 Created`, con el ID generado por MongoDB y el estado `pendiente`.
-
-### Ejemplo de PUT
-
-**Método:** PUT
-
-**URL:**
+También se puede comprobar que las búsquedas:
 
 ```text
-http://localhost:3000/api/reservas/ID_DE_LA_RESERVA
+?q=%5B
 ```
 
-**Body:**
-
-```json
-{
-  "estudiante": "María Ejemplo",
-  "email": "maria.ejemplo@example.com",
-  "sala": "Sala Sur",
-  "fecha": "2026-11-11",
-  "turno": "Tarde",
-  "personas": 3,
-  "estado": "pendiente"
-}
-```
-
-La respuesta esperada es `200 OK`, con la reserva actualizada y el mismo ID.
-
-Para PUT es obligatorio enviar los siete campos. Si falta alguno, la solicitud responde con código 400 y la reserva no se modifica.
-
-### Ejemplo de PATCH
-
-**Método:** PATCH
-
-**URL:**
+y
 
 ```text
-http://localhost:3000/api/reservas/ID_DE_LA_RESERVA
+?q=.%2A
 ```
 
-**Body:**
+no se interpretan como operadores de expresiones regulares.
 
-```json
-{
-  "estado": "confirmada"
-}
-```
-
-En este caso solamente cambia el estado. Los demás campos se conservan.
-
-### Ejemplo de DELETE
-
-**Método:** DELETE
-
-**URL:**
+### Ejemplo de parámetro inválido
 
 ```text
-http://localhost:3000/api/reservas/ID_DE_LA_RESERVA
+http://localhost:3000/api/reservas/consulta?pagina=0
 ```
 
-Si la reserva existe, la respuesta es `204 No Content`.
-
-Si se repite la misma solicitud, la respuesta es `404`, porque ya fue eliminada.
-
-**Importante:** para las pruebas de creación, modificación y eliminación conviene utilizar reservas de prueba. El POST crea documentos reales y el DELETE los elimina de la base.
+La respuesta esperada es HTTP 400 con un mensaje que explica que la página debe estar entre 1 y 1000.
 
 ### Pruebas desde el navegador
 
-Para probar las operaciones web no es necesario utilizar Postman.
+Para probar las consultas web se puede abrir:
 
-**Cambio parcial de estado:**
+```text
+http://localhost:3000/reservas
+```
 
-1. Iniciar la aplicación con `npm run start:local`.
-2. Abrir el listado de reservas.
-3. Seleccionar una reserva existente.
-4. Ingresar a la opción para cambiar el estado.
-5. Comprobar que se muestre el estado actual.
-6. Seleccionar otro estado y guardar.
-7. Comprobar que la aplicación redirija al detalle actualizado.
-8. Consultar el mismo ID desde Postman para verificar que el cambio también esté guardado en MongoDB.
+Desde el formulario se puede:
 
-También se puede cancelar el formulario y comprobar que la reserva no haya cambiado.
+1. Ingresar un fragmento del nombre.
+2. Seleccionar o escribir una sala.
+3. Elegir el criterio de ordenamiento.
+4. Seleccionar cuántas reservas se muestran por página.
+5. Presionar Buscar.
+6. Utilizar Anterior y Siguiente para recorrer los resultados.
+7. Presionar Limpiar para volver al listado sin filtros.
 
-**Eliminación con confirmación:**
-
-1. Abrir el listado de reservas.
-2. Seleccionar una reserva existente.
-3. Ingresar a la opción de eliminar.
-4. Comprobar que se muestre la pantalla de confirmación con los datos de la reserva.
-5. Cancelar y comprobar que la reserva continúe existiendo.
-6. Volver a ingresar a la pantalla de eliminación.
-7. Confirmar la operación.
-8. Comprobar que la aplicación redirija al listado.
-9. Consultar el mismo ID desde Postman para verificar que la reserva ya no exista.
+Las nuevas búsquedas comienzan en la primera página y los enlaces de navegación conservan los criterios seleccionados.
 
 ## 11. Matriz de resultados de las pruebas
 
-En esta sección anoto los resultados que fui comprobando en Postman, el navegador, MongoDB Compass y la terminal durante las pruebas del TP 12.
+En esta sección registro las comprobaciones realizadas en Postman y en el navegador durante el desarrollo del TP 13.
 
-### Cambio parcial de estado desde el sitio HTML
-
-| Caso probado | Resultado esperado | Resultado observado |
-| --- | --- | --- |
-| GET al formulario de estado con ID existente | 200 y formulario con el estado actual | 200. Se mostró el estado actual de la reserva |
-| Guardar un estado permitido | 303 y redirección al detalle | 303. Se guardó el cambio y se mostró el detalle actualizado |
-| GET por API después del cambio | 200 y estado actualizado | 200. Se comprobó que el nuevo estado estaba guardado |
-| Comprobar los demás campos después del cambio | Los demás datos deben conservarse | Se comprobó que los demás campos permanecieron sin modificaciones |
-| Cancelar el formulario | No debe guardar cambios | Se volvió al detalle y el estado permaneció igual |
-| Enviar un estado no permitido | 400 y mensaje de validación | 400. Se mostró el mensaje correspondiente |
-| Enviar un estado vacío | 400 y formulario con error | 400. Se mostró nuevamente el formulario |
-| Enviar un campo adicional | 400 y rechazo de la solicitud | 400. Se rechazó la solicitud |
-| Enviar el campo estado repetido | 400 y rechazo de la solicitud | 400. Se rechazó la solicitud |
-| Intentar acceder con un ID inválido | 400 | 400. Se mostró el mensaje correspondiente |
-| Intentar acceder con un ID válido inexistente | 404 | 404. Se mostró la vista de reserva no encontrada |
-| Intentar guardar desde un formulario abierto después de eliminar la reserva | 404 y sin crear nuevamente el documento | 404. La reserva continuó eliminada |
-
-### Eliminación desde el sitio HTML
+### Consultas generales y búsqueda
 
 | Caso probado | Resultado esperado | Resultado observado |
-| --- | --- | --- |
-| GET a la pantalla de confirmación con ID existente | 200 y datos de la reserva | 200. Se mostró la información de la reserva |
-| Cancelar la eliminación | La reserva debe permanecer intacta | Se comprobó que la reserva continuaba existiendo |
-| Confirmar la eliminación correctamente | 303 y redirección al listado | Se completó la eliminación y se llegó al listado |
-| Consultar por API una reserva eliminada | 404 | 404. La API informó que no existe una reserva con ese identificador |
-| Enviar una confirmación incorrecta (`no`) | 400 y reserva intacta | 400. Se mostró el mensaje de confirmación |
-| Enviar campos adicionales | 400 y reserva intacta | 400. Se rechazó la solicitud y la reserva no se eliminó |
-| Repetir el POST de eliminación sobre una reserva ya eliminada | 404 | 404. Se mostró la vista de reserva no encontrada |
-| Enviar la confirmación faltante | 400 y reserva intacta | 400. Se volvió a mostrar la pantalla de confirmación |
-| Enviar el campo confirmar repetido | 400 y reserva intacta | 400. Se rechazó la solicitud |
-| Comprobar la reserva después de los intentos inválidos | 200 y datos sin modificaciones | 200. Se comprobó que la reserva seguía existiendo con sus datos intactos |
+|---|---|---|
+| Consulta sin parámetros | 200, total 6, página 1, límite 2 y 3 páginas | Correcto. Se obtuvieron Ana Alba y Ana Berta |
+| Búsqueda `q=ana` | 200 y 4 coincidencias | Correcto. Total 4 y 2 páginas |
+| Búsqueda `q=ana` con `sala=Sala Norte` | 200 y 3 coincidencias | Correcto. Total 3 y 2 páginas |
+| Búsqueda con `orden=personas-asc` | Orden ascendente por cantidad de personas | Correcto. Se obtuvieron los registros con 1 y 2 personas |
+| Consulta de la segunda página | Mostrar los registros siguientes sin repetir los anteriores | Correcto. Se obtuvo Ana Clara con 3 personas |
+| Comparación entre API y navegador | Mostrar los mismos resultados y metadatos | Correcto. Se verificó la equivalencia |
+| Nueva búsqueda desde la página 2 | Volver a la página 1 y conservar los criterios | Correcto |
+| Botón Limpiar | Quitar los filtros y recuperar valores predeterminados | Correcto |
 
-### Pruebas de continuidad de la API y de las operaciones anteriores
+### Búsquedas literales y resultados vacíos
 
 | Caso probado | Resultado esperado | Resultado observado |
-| --- | --- | --- |
-| Crear una reserva desde el formulario web | Reserva creada y estado inicial pendiente | Correcto. Se creó una reserva desde el sitio HTML |
-| Realizar una edición completa desde la web | 303 y reserva actualizada | Correcto. Se modificó y guardó la reserva |
-| Consultar una reserva por ID desde la API | 200 y datos correctos | 200. Se consultó la reserva y se verificaron sus datos |
-| Consultar reservas con filtro por sala y ordenamiento | 200 y resultados correspondientes | 200. Se obtuvo la reserva de Sala Norte ordenada por cantidad de personas |
-| Consultar reservas sin filtros | 200 y valores predeterminados | 200. Se comprobó página 1, límite 2 y orden por estudiante |
-| Consultar la segunda página | 200 y registros restantes sin repetir los anteriores | 200. Se obtuvo el tercer registro, con total 3 y 2 páginas |
-| Consultar el estado general de la API | 200 y cantidad total de reservas | 200. La respuesta informó `totalReservas: 3` |
-| Modificar una reserva mediante PATCH | 200 y modificación parcial | 200. Se modificó `personas` de 3 a 5 y se conservó el resto de los campos |
-| Comprobar el cambio de PATCH desde el listado web | El listado debe mostrar los datos actualizados | Correcto. Se mostró Bruno Ejemplo con 5 personas y estado confirmada |
-| Eliminar una reserva mediante DELETE | 204 y eliminación | Se comprobó la eliminación desde la API |
-| Repetir DELETE sobre una reserva eliminada | 404 | Se comprobó que la API informa que la reserva no existe |
+|---|---|---|
+| Búsqueda `q=A+B` | Encontrar el registro Carla (A+B) | Correcto. Una coincidencia |
+| Búsqueda `q=[` | Interpretar el carácter como texto literal | Correcto. 200 y cero coincidencias |
+| Búsqueda `q=.*` | Interpretar los caracteres como texto literal | Correcto. 200 y cero coincidencias |
+| Búsqueda sin coincidencias | 200, datos vacío, total 0 y páginas 0 | Correcto. Se mostró el mensaje correspondiente en el navegador |
+| Página fuera de los resultados | 200, conservar total y devolver datos vacío | Correcto. Se mostró el enlace para volver a la primera página |
 
-**Nota:** en esta entrega se verificaron el alta y la edición completa desde el sitio HTML. Las operaciones POST y PUT de la API no se vuelven a marcar como probadas en esta matriz porque no repetimos esas solicitudes durante las comprobaciones de continuidad de TP12.
+### Validaciones de parámetros
+
+| Caso probado | Resultado esperado | Resultado observado |
+|---|---|---|
+| `pagina=0` | 400 | Correcto. La API rechazó el valor |
+| `pagina=1.5` | 400 | Correcto. La API rechazó el valor |
+| `limite=21` | 400 | Correcto. La API rechazó el valor |
+| `orden=inventado` | 400 | Correcto. La API rechazó el criterio |
+| Parámetro `q` repetido | 400 | Correcto. Se rechazó el parámetro repetido |
+| Parámetro desconocido | 400 | Correcto. Se rechazó la solicitud |
+| `pagina=0` desde navegador | 400 | Correcto |
+| `orden=inventado` desde navegador | 400 | Correcto |
+| Parámetro desconocido desde navegador | 400 | Correcto |
+| Criterios `q` y `sala` vacíos | 200 y sin restricciones de búsqueda | Correcto. Total 6 |
+| Sala inexistente | 200, datos vacío, total 0 y páginas 0 | Correcto |
+| `orden` vacío | 400 | Correcto. Se rechazó el criterio |
+
+### Continuidad de la aplicación y persistencia
+
+| Caso probado | Resultado esperado | Resultado observado |
+|---|---|---|
+| `GET /api/reservas` | Mantener el funcionamiento anterior | 200. Se obtuvo la respuesta paginada anterior |
+| `GET /api/reservas/:id` | Obtener una reserva por su identificador | 200. Se obtuvo el objeto individual |
+| Reiniciar la aplicación | Conservar los documentos guardados | Correcto. Los seis registros siguieron disponibles |
+| Consulta después del reinicio | 200, total 6, página 1, límite 2 y 3 páginas | Correcto. Se obtuvieron Ana Alba y Ana Berta |
+
+Las operaciones de alta, edición completa, modificación parcial y eliminación ya habían sido trabajadas y comprobadas durante los trabajos anteriores. No se repitieron como parte de las pruebas específicas de búsqueda del TP 13.
 
 ### Verificaciones de formato, código y conexión
 
 | Comando o prueba | Resultado esperado | Resultado observado |
-| --- | --- | --- |
+|---|---|---|
+| `npm run format` | Aplicar Prettier | Correcto. Terminó sin errores |
 | `npm run check` | Comprobar formato y ejecutar ESLint | Correcto. Terminó sin errores |
 | `npm run start:local` | Iniciar la aplicación cargando el `.env` | Correcto. La aplicación quedó disponible en `http://localhost:3000` |
-| Actualización parcial de estado | Modificar el estado sin alterar los demás campos | Correcto. Se comprobó el cambio desde el navegador y la API |
-| Actualización con `returnDocument: "after"` | Obtener el documento actualizado | Correcto. La actualización se realizó sin advertencias de Mongoose |
-| Pie de página de la aplicación | Mostrar la identificación del TP 12 | Correcto. Se corrigió la referencia en `views/layouts/main.ejs` |
+| Reinicio de la aplicación | Volver a iniciar y mantener la conexión | Correcto. Se realizó una nueva consulta después del reinicio |
 
 ## 12. Cosas que fallaron durante las pruebas y cómo las arreglé
 
-Durante el desarrollo aparecieron algunos problemas que tuve que corregir.
+Durante el desarrollo aparecieron algunas cuestiones que tuve que revisar y corregir.
 
-| Qué pasaba | Qué hice |
-| --- | --- |
-| La vista de detalle no mostraba correctamente todos los datos de la reserva | Revisé la estructura de la vista y completé la presentación de los campos |
-| La vista de eliminación tenía una estructura HTML incorrecta | Corregí las etiquetas y los datos que se muestran en la confirmación |
-| La vista de error mostraba siempre el código 404, incluso cuando la respuesta era 400 | Modifiqué el middleware para enviar el código HTTP a la vista |
-| El pie de página seguía indicando Trabajo práctico 11 | Actualicé el texto en `views/layouts/main.ejs` para identificar el TP 12 |
-| Mongoose mostraba una advertencia relacionada con la opción `new` | Reemplacé `new: true` por `returnDocument: "after"` |
-| El formulario de estado debía modificar solamente ese campo | Preparé un objeto con el cambio de estado y utilicé el servicio de actualización parcial |
-| Al enviar campos adicionales o repetidos había que impedir la modificación | Incorporé las comprobaciones correspondientes antes de llamar al servicio |
-| La eliminación debía requerir una confirmación explícita | Incorporé la validación del campo `confirmar` con el valor `si` |
-| Al cancelar una eliminación había que evitar que se modificara la reserva | La pantalla de confirmación utiliza GET y la eliminación solamente se realiza mediante POST |
-| Al intentar modificar una reserva eliminada desde un formulario que seguía abierto había que evitar que se creara nuevamente | Se comprobó la existencia de la reserva antes de realizar la actualización |
-| El comando `npm start` no encontraba `MONGODB_URI` | Para el entorno local utilicé `npm run start:local`, que carga el archivo `.env` |
+| Qué pasaba o qué debía controlarse | Qué hice |
+|---|---|
+| Las consultas web y API debían utilizar los mismos criterios | Incorporé el módulo compartido `criterios-reservas.js` |
+| Había que impedir el uso de parámetros desconocidos | Incorporé una lista de parámetros permitidos y rechacé los adicionales |
+| Había que impedir parámetros repetidos | Incorporé la comprobación del tipo de valor recibido |
+| Los caracteres especiales podían alterar la búsqueda | Incorporé la función `escaparRegex()` |
+| La búsqueda debía ignorar mayúsculas y minúsculas | Configuré la expresión regular con la opción `i` |
+| La sala debía compararse por igualdad exacta | Utilicé el valor completo del criterio como filtro |
+| Los resultados podían tener valores iguales al ordenar | Incorporé `_id` como segundo criterio de ordenamiento |
+| La paginación debía conocer el total de coincidencias | Utilicé `countDocuments()` antes de recuperar los resultados paginados |
+| Había que diferenciar entre cero coincidencias y una página fuera de rango | Incorporé condiciones diferentes en la vista |
+| Los enlaces de navegación debían conservar los filtros | Utilicé los criterios de consulta para generar las URL de navegación |
+| Una nueva búsqueda desde otra página debía comenzar desde la primera | El formulario no envía el parámetro `pagina` |
+| El reinicio no debía eliminar los datos | Comprobé la persistencia mediante una nueva consulta después del reinicio |
 
-Una cuestión importante de esta entrega fue completar las operaciones de cambio parcial y eliminación desde el sitio HTML sin duplicar la lógica de acceso a MongoDB.
+Una cuestión importante de esta entrega fue compartir la lógica de consulta entre la API y el sitio HTML, evitando duplicar operaciones y manteniendo una única forma de interpretar los criterios.
 
-El controlador recibe los datos, realiza las comprobaciones correspondientes y utiliza el servicio para modificar o eliminar la reserva.
-
-De esta manera, tanto la API como el sitio HTML siguen trabajando sobre los mismos documentos.
-
-También fue importante diferenciar los errores de validación de los errores inesperados del servidor, para devolver el código HTTP correspondiente y mostrar una respuesta adecuada según se trate de una solicitud HTML o de una solicitud de API.
+También fue importante proteger la búsqueda por nombre para que los caracteres especiales se interpreten como texto y no como instrucciones de una expresión regular.
 
 ## 13. Pequeña decisión de diseño
 
-Si en un futuro incorporáramos información sobre las salas, podríamos guardar datos propios de cada una, como su nombre, capacidad, ubicación y los recursos disponibles.
+En esta entrega mantuve la separación entre el controlador, el servicio y el módulo de criterios.
 
-En cambio, una reserva contiene información relacionada con el estudiante, la fecha, el turno y la cantidad de personas.
+El módulo `criterios-reservas.js` se encarga de interpretar y validar los parámetros recibidos.
 
-Considero que tendría sentido utilizar una referencia entre la reserva y la sala, porque una misma sala puede tener muchas reservas y así evitaríamos repetir sus datos en cada registro. También podrían utilizarse datos embebidos si necesitáramos guardar información pequeña y específica de la sala dentro de la reserva. La elección dependería de cómo necesitemos consultar y mantener esa información.
+El controlador web utiliza esos criterios, llama al servicio y prepara los datos que necesita la vista EJS.
 
-No implementé otro modelo ni utilicé `populate`, porque el ejercicio solamente pide explicar esta decisión de diseño.
+El controlador de la API utiliza el mismo módulo y el mismo servicio, pero devuelve los resultados en formato JSON.
+
+El servicio construye el filtro de MongoDB, cuenta los documentos coincidentes y obtiene los resultados aplicando ordenamiento y paginación.
+
+De esta manera, la búsqueda se implementa una sola vez y puede utilizarse desde dos interfaces diferentes.
+
+No incorporé una nueva colección ni otro modelo porque los criterios de búsqueda trabajan sobre los campos que ya existen en las reservas.
 
 ## 14. Lo que todavía no valida mi aplicación
 
@@ -754,31 +780,34 @@ La aplicación tiene las validaciones solicitadas para esta entrega, pero todav�
 - No controla disponibilidad real de las salas.
 - No tiene autenticación ni permisos de usuarios.
 - No comprueba si una reserva ya existe con los mismos datos.
+- La búsqueda no elimina ni normaliza tildes.
 
 Estas cuestiones podrían agregarse en futuras versiones, pero no forman parte de lo que implementé en este trabajo.
 
-## 15. Comparación con el TP 11
+## 15. Comparación con el TP 12
 
-| | TP 11 | TP 12 |
-| --- | --- | --- |
-| Base de datos | MongoDB Atlas | MongoDB Atlas |
-| Colección | `reservas` | `reservas` |
+| Característica | TP 12 | TP 13 |
+|---|---|---|
+| Base de datos | MongoDB Atlas | Se mantiene MongoDB Atlas |
+| Nombre de la base | `reservas_salas_u12` | `reservas_salas_u13` |
+| Colección | `reservas` | Se mantiene `reservas` |
 | Operaciones API | GET, POST, PUT, PATCH y DELETE | Se mantienen las mismas |
 | Crear reserva desde API | Sí | Se mantiene |
 | Consultar por ID desde API | Sí | Se mantiene |
 | Reemplazar una reserva desde API | Sí, con PUT | Se mantiene |
 | Modificar algunos campos desde API | Sí, con PATCH | Se mantiene |
 | Eliminar una reserva desde API | Sí, con DELETE | Se mantiene |
-| Filtrar por sala | Sí | Se mantiene |
-| Ordenar resultados | Sí | Se mantiene |
-| Paginación | Sí | Se mantiene |
-| Conteo de reservas | Sí | Se mantiene |
-| Interfaz HTML | Listado, detalle, creación y edición | Se amplía con cambio parcial de estado y eliminación con confirmación |
-| Formulario de edición | Sí | Se mantiene |
-| Cambio parcial de estado desde HTML | No estaba incorporado | Se incorpora |
-| Eliminación con confirmación desde HTML | No estaba incorporada | Se incorpora |
-| Validaciones de formularios web | Sí | Se amplían |
-| Manejo centralizado de errores | Sí | Se amplía para los nuevos formularios |
+| Filtrar por sala | Sí, en la consulta anterior de API | Se mantiene y se incorpora a la nueva consulta |
+| Ordenar resultados | Sí, en la consulta anterior de API | Se mantiene y se incorpora a la nueva consulta |
+| Paginación | Sí, en la consulta anterior de API | Se amplía a la búsqueda web y API |
+| Búsqueda por fragmento del estudiante | No estaba incorporada | Se incorpora |
+| Búsqueda literal de caracteres especiales | No estaba incorporada | Se incorpora |
+| Validación compartida de criterios | No estaba incorporada | Se incorpora |
+| Consulta web con filtros y búsqueda | No estaba incorporada | Se incorpora |
+| Navegación entre páginas conservando criterios | No estaba incorporada | Se incorpora |
+| Cambio parcial de estado desde HTML | Sí | Se mantiene |
+| Eliminación con confirmación desde HTML | Sí | Se mantiene |
+| Manejo centralizado de errores | Sí | Se mantiene y se utiliza en las nuevas consultas |
 | Persistencia | MongoDB Atlas | Se mantiene y se vuelve a comprobar |
 
 ## 16. Calidad del código
@@ -786,6 +815,7 @@ Estas cuestiones podrían agregarse en futuras versiones, pero no forman parte d
 Para revisar el formato y los errores de código ejecuté:
 
 ```bash
+npm run format
 npm run check
 ```
 
@@ -806,9 +836,11 @@ El servidor inició correctamente y quedó disponible en:
 http://localhost:3000
 ```
 
-Además, realicé pruebas funcionales del cambio parcial de estado y de la eliminación desde el sitio HTML, comprobando las respuestas HTTP y los datos guardados en MongoDB.
+Además, realicé las pruebas funcionales de búsqueda, filtros, ordenamiento, paginación y validaciones desde Postman y el navegador.
 
-También comprobé la continuidad de varias operaciones anteriores: alta y edición completa desde la web, consultas de la API, filtros, ordenamiento, paginación, conteo, PATCH y DELETE.
+Comprobé que las consultas web y API devuelven los mismos resultados para los mismos criterios, que los parámetros inválidos son rechazados y que la aplicación diferencia correctamente entre una búsqueda sin coincidencias y una página fuera de los resultados.
+
+Finalmente, reinicié la aplicación y repetí una consulta para comprobar que los seis registros de práctica continuaban guardados en MongoDB Atlas.
 
 Los resultados de estas pruebas están detallados en la matriz de esta entrega.
 
